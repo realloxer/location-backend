@@ -27,4 +27,13 @@ export class LocationService {
       relations: ['parent', 'children'],
     });
   }
+
+  async update(id: string, updateData: Partial<Location>) {
+    await this.locationRepository.update(id, updateData);
+    return this.findOne(id);
+  }
+
+  async remove(id: string) {
+    await this.locationRepository.delete(id);
+  }
 }
