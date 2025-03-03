@@ -19,18 +19,13 @@ export class LocationService {
   ) {}
 
   async create(dto: CreateLocationDto) {
-    const { locationNumber, parentId } = dto;
-
-    // Ensure parentId (if provided) is a valid UUID
-    if (parentId && !isUUID(parentId)) {
-      throw new BadRequestException('Invalid parent ID format.');
-    }
-
+    const { locationNumber, parentId, building } = dto;
     // Check for existing location number and valid parent in a single query
     const filteredLocations = await this.locationRepository.find({
       where: [{ locationNumber }, parentId ? { id: parentId } : {}],
     });
 
+    // Validate location number unique
     const existingLocation = filteredLocations.find(
       (loc) => loc.locationNumber === locationNumber,
     );
@@ -38,12 +33,20 @@ export class LocationService {
       throw new ConflictException('Location number already exists.');
     }
 
+    // Validate parent existence
     const parent = parentId
       ? filteredLocations.find((loc) => loc.id === parentId)
       : null;
     if (parentId && !parent) {
       throw new NotFoundException(
         `Parent location with ID ${parentId} not found.`,
+      );
+    }
+
+    // Validate parent and child have same building value
+    if (parent && parent.building !== building) {
+      throw new BadRequestException(
+        'Parent and child location must be in the same building.',
       );
     }
 
