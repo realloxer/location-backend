@@ -23,6 +23,7 @@ export class Location {
   @Column({ type: 'int' })
   area: number;
 
+  // If the parent location is deleted, all child locations will be deleted also.
   @ManyToOne(() => Location, (location) => location.children, {
     onDelete: 'CASCADE',
   })
