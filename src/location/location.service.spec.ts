@@ -84,4 +84,41 @@ describe('LocationService', () => {
       await expect(service.create(dto)).rejects.toThrow(ConflictException);
     });
   });
+
+  describe('findOne()', () => {
+    it('return the location by ID', async () => {
+      mockRepository.findOne.mockResolvedValue(mockLocation);
+
+      const result = await service.findOne(locationId);
+
+      expect(result).toEqual(mockLocation);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: locationId },
+        relations: ['parent', 'children'],
+      });
+    });
+
+    it('throw BadRequestException if ID is invalid', async () => {
+      await expect(service.findOne('invalid-uuid')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('update()', () => {
+    it('successfully update a location', async () => {
+      const dto: UpdateLocationDto = { locationName: 'Updated Name' };
+
+      mockRepository.find.mockResolvedValue([mockLocation]);
+      mockRepository.save.mockResolvedValue({
+        ...mockLocation,
+        ...dto,
+      });
+
+      const result = await service.update(locationId, dto);
+
+      expect(result.locationName).toBe('Updated Name');
+      expect(mockRepository.save).toHaveBeenCalled();
+    });
+  });
 });
