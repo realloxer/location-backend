@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Location } from './entities/location';
@@ -27,11 +33,18 @@ export class LocationService {
     });
   }
 
-  findOne(id: string) {
-    return this.locationRepository.findOne({
+  async findOne(id: string) {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid location ID format.');
+    }
+    const location = await this.locationRepository.findOne({
       where: { id },
       relations: ['parent', 'children'],
     });
+    if (!location) {
+      throw new NotFoundException(`Location with ID ${id} not found.`);
+    }
+    return location;
   }
 
   async update(id: string, updateData: Partial<Location>) {
