@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Location } from './entities/location';
+import { CreateLocationDto } from './dto/create-location.dto';
 
 @Injectable()
 export class LocationService {
@@ -10,9 +11,14 @@ export class LocationService {
     private readonly locationRepository: Repository<Location>,
   ) {}
 
-  create(locationData: Partial<Location>) {
-    const location = this.locationRepository.create(locationData);
-    return this.locationRepository.save(location);
+  async create(dto: CreateLocationDto) {
+    const existingLocation = await this.locationRepository.findOne({
+      where: { locationNumber: dto.locationNumber },
+    });
+    if (existingLocation) {
+      throw new ConflictException('Location number already exists.');
+    }
+    return this.locationRepository.save(dto);
   }
 
   findAll() {

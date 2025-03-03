@@ -9,14 +9,15 @@ import {
 } from '@nestjs/common';
 import { LocationService } from './location.service';
 import { Location } from './entities/location';
+import { CreateLocationDto } from './dto/create-location.dto';
 
 @Controller('locations')
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
   @Post()
-  create(@Body() locationData: Partial<Location>) {
-    return this.locationService.create(locationData);
+  create(@Body() createLocationDto: CreateLocationDto) {
+    return this.locationService.create(createLocationDto);
   }
 
   @Get()
