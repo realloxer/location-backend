@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsUUID, IsOptional, IsInt } from 'class-validator';
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { IsNotEmpty, IsUUID, IsOptional, IsInt, Min } from 'class-validator';
 
 export class CreateLocationDto {
   @IsNotEmpty()
@@ -11,6 +12,7 @@ export class CreateLocationDto {
   locationNumber: string;
 
   @IsInt()
+  @Min(0)
   area: number;
 
   @IsOptional()

@@ -8,8 +8,8 @@ import {
   Delete,
 } from '@nestjs/common';
 import { LocationService } from './location.service';
-import { Location } from './entities/location';
 import { CreateLocationDto } from './dto/create-location.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
 
 @Controller('locations')
 export class LocationController {
@@ -31,7 +31,7 @@ export class LocationController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateData: Partial<Location>) {
+  update(@Param('id') id: string, @Body() updateData: UpdateLocationDto) {
     return this.locationService.update(id, updateData);
   }
 

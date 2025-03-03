@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Location } from './entities/location';
 import { CreateLocationDto } from './dto/create-location.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
 
 @Injectable()
 export class LocationService {
@@ -34,17 +35,17 @@ export class LocationService {
     }
 
     // Validate parent existence
-    const parent = parentId
+    const parentLocation = parentId
       ? filteredLocations.find((loc) => loc.id === parentId)
       : null;
-    if (parentId && !parent) {
+    if (parentId && !parentLocation) {
       throw new NotFoundException(
         `Parent location with ID ${parentId} not found.`,
       );
     }
 
     // Validate parent and child have same building value
-    if (parent && parent.building !== building) {
+    if (parentLocation && parentLocation.building !== building) {
       throw new BadRequestException(
         'Parent and child location must be in the same building.',
       );
@@ -53,7 +54,7 @@ export class LocationService {
     // Create and save the new location
     const location = this.locationRepository.create({
       ...dto,
-      parent: parent ?? null,
+      parent: parentLocation ?? null,
     });
 
     return this.locationRepository.save(location);
@@ -79,9 +80,66 @@ export class LocationService {
     return location;
   }
 
-  async update(id: string, updateData: Partial<Location>) {
-    await this.locationRepository.update(id, updateData);
-    return this.findOne(id);
+  async update(id: string, updateDto: UpdateLocationDto) {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid location ID format.');
+    }
+    const { locationNumber, parentId, building, locationName, area } =
+      updateDto;
+
+    // Fetch current location and potential conflicts in a single query
+    const filteredLocations = await this.locationRepository.find({
+      where: [{ locationNumber }, { id: parentId }, { id }],
+      relations: ['parent'],
+    });
+
+    // Find the current location
+    const currentLocation = filteredLocations.find((loc) => loc.id === id);
+    if (!currentLocation) {
+      throw new NotFoundException(`Location with ID ${id} not found.`);
+    }
+
+    // Validate location number unique
+    if (
+      locationNumber &&
+      filteredLocations.some(
+        (loc) => loc.locationNumber === locationNumber && loc.id !== id,
+      )
+    ) {
+      throw new ConflictException('Location number already exists.');
+    }
+
+    // Validate parent and child have same building value
+    const parentLocation = parentId
+      ? filteredLocations.find((loc) => loc.id === parentId)
+      : null;
+
+    if (parentId && !parentLocation) {
+      throw new NotFoundException(
+        `Parent location with ID ${parentId} not found.`,
+      );
+    }
+
+    if (
+      parentLocation &&
+      (building ?? currentLocation.building) !== parentLocation.building
+    ) {
+      throw new BadRequestException(
+        'Parent and child location must be in the same building.',
+      );
+    }
+
+    // Update the location entity
+    const updatedLocation = {
+      ...currentLocation,
+      locationNumber: locationNumber ?? currentLocation.locationNumber,
+      locationName: locationName ?? currentLocation.locationName,
+      building: building ?? currentLocation.building,
+      area: area ?? currentLocation.area,
+      parent: parentLocation ?? null,
+    };
+
+    return this.locationRepository.save(updatedLocation);
   }
 
   async remove(id: string) {
