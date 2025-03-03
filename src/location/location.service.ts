@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   Injectable,
   ConflictException,
@@ -18,13 +19,41 @@ export class LocationService {
   ) {}
 
   async create(dto: CreateLocationDto) {
-    const existingLocation = await this.locationRepository.findOne({
-      where: { locationNumber: dto.locationNumber },
+    const { locationNumber, parentId } = dto;
+
+    // Ensure parentId (if provided) is a valid UUID
+    if (parentId && !isUUID(parentId)) {
+      throw new BadRequestException('Invalid parent ID format.');
+    }
+
+    // Check for existing location number and valid parent in a single query
+    const filteredLocations = await this.locationRepository.find({
+      where: [{ locationNumber }, parentId ? { id: parentId } : {}],
     });
+
+    const existingLocation = filteredLocations.find(
+      (loc) => loc.locationNumber === locationNumber,
+    );
     if (existingLocation) {
       throw new ConflictException('Location number already exists.');
     }
-    return this.locationRepository.save(dto);
+
+    const parent = parentId
+      ? filteredLocations.find((loc) => loc.id === parentId)
+      : null;
+    if (parentId && !parent) {
+      throw new NotFoundException(
+        `Parent location with ID ${parentId} not found.`,
+      );
+    }
+
+    // Create and save the new location
+    const location = this.locationRepository.create({
+      ...dto,
+      parent: parent ?? null,
+    });
+
+    return this.locationRepository.save(location);
   }
 
   findAll() {
